@@ -32,7 +32,7 @@ describe("selectElement", () => {
     );
   });
 
-  it("fails with AXe's no-match wording, which drivers match on", () => {
+  it("fails with the stable no-match wording drivers match on", () => {
     expect(() =>
       selectElement(signIn(), { kind: "label", text: "Sign up" }),
     ).toThrow(NoMatchError);

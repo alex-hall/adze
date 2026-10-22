@@ -17,10 +17,10 @@ published.
 
 ## Design rules
 
-- **Mirror AXe.** Subcommands, flags, `serve` protocol, `describe-ui` JSON keys
-  and the "no element matched" error text follow AXe's, so a driver written for
-  AXe works against adze by changing the binary name. Android-only additions
-  are new subcommands or flags; never change the meaning of an AXe one.
+- **Keep the interface stable.** Subcommands, flags, the `serve` protocol, the
+  `describe-ui` JSON keys and the "No accessibility element matched" error text
+  are what test drivers are written against. Add new subcommands or flags;
+  never change the meaning of an existing one.
 - **Coordinates are dp**, the Android counterpart of iOS points, everywhere on
   the command line and in output.
 - **The device server stays small.** It exposes primitives (dump, touch, key,

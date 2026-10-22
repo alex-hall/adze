@@ -1,7 +1,7 @@
 {
   "name": "adze-android",
   "version": "0.1.0",
-  "description": "An AXe-compatible command-line driver for Android emulators: read the accessibility tree, tap, type and swipe through UiAutomation.",
+  "description": "Drive Android emulators through accessibility from the command line: read the accessibility tree, tap, type and swipe through UiAutomation.",
   "keywords": [
     "android",
     "android-emulator",

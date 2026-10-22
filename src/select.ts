@@ -2,7 +2,7 @@ import {
   contains,
   flatten,
   onScreenCenter,
-  type AxeElement,
+  type UiElement,
   type ScreenSize,
 } from "./tree.js";
 
@@ -11,7 +11,7 @@ export type SelectorKind = "id" | "label" | "value";
 export interface Selector {
   kind: SelectorKind;
   text: string;
-  /** Narrows matches to one AXe type (`Button`, `TextField`, ...), case-insensitively. */
+  /** Narrows matches to one element type (`Button`, `TextField`, ...), case-insensitively. */
   elementType?: string;
 }
 
@@ -21,7 +21,7 @@ const FLAG_FOR: Record<SelectorKind, string> = {
   value: "--value",
 };
 
-/** No element matched; the message keeps AXe's wording, which callers match on. */
+/** No element matched. Test drivers match on this wording: keep it stable. */
 export class NoMatchError extends Error {
   constructor(selector: Selector) {
     super(
@@ -58,15 +58,15 @@ const describeSelector = (selector: Selector): string =>
   (selector.elementType ? ` --element-type '${selector.elementType}'` : "");
 
 /**
- * Finds the single element a selector names. Exact matches only, as in AXe.
+ * Finds the single element a selector names. Exact matches only.
  * Matches Android reports off screen (scrolled-away rows) don't count
  * toward ambiguity: one visible match is the target. Only when every match
  * is off screen does selection fail, saying so instead of "no match".
  */
 export function selectElement(
-  elements: readonly AxeElement[],
+  elements: readonly UiElement[],
   selector: Selector,
-): AxeElement {
+): UiElement {
   const matches = flatten(elements).filter((element) =>
     matchesSelector(element, selector),
   );
@@ -78,7 +78,7 @@ export function selectElement(
   throw new NoMatchError(selector);
 }
 
-function matchesSelector(element: AxeElement, selector: Selector): boolean {
+function matchesSelector(element: UiElement, selector: Selector): boolean {
   if (
     selector.elementType &&
     element.type.toLowerCase() !== selector.elementType.toLowerCase()
@@ -100,7 +100,7 @@ function matchesSelector(element: AxeElement, selector: Selector): boolean {
  * screen. A row half under the bottom edge is tapped on its visible half.
  */
 export function activationPoint(
-  element: AxeElement,
+  element: UiElement,
   screen: ScreenSize,
 ): { x: number; y: number } {
   return (
@@ -118,12 +118,12 @@ export function activationPoint(
  * child.
  */
 export function elementAt(
-  elements: readonly AxeElement[],
+  elements: readonly UiElement[],
   x: number,
   y: number,
-): AxeElement | undefined {
-  let found: AxeElement | undefined;
-  const visit = (element: AxeElement) => {
+): UiElement | undefined {
+  let found: UiElement | undefined;
+  const visit = (element: UiElement) => {
     if (!contains(element.frame, x, y)) return;
     if (element.visible) found = element;
     element.children.forEach(visit);

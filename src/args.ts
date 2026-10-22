@@ -1,6 +1,6 @@
 /**
  * Argument parsing shared by the command line and `serve`, so a command
- * means the same thing in both. Flags follow AXe's spelling.
+ * means the same thing in both.
  */
 
 export interface ParsedCommand {
@@ -18,7 +18,7 @@ interface CommandSpec {
   positionals: number;
 }
 
-/** Every command takes these. `--udid` is AXe's spelling of `--serial`. */
+/** Every command takes these. `--udid` is another name for `--serial`. */
 const COMMON_VALUES = ["--serial", "--udid"];
 const COMMON_BOOLEANS = ["--verbose"];
 
@@ -113,7 +113,7 @@ export class UsageError extends Error {
   }
 }
 
-/** Parses one command's arguments, AXe style: `tap --label "Sign in" --udid emulator-5554`. */
+/** Parses one command's arguments: `tap --label "Sign in" --serial emulator-5554`. */
 export function parseCommand(tokens: readonly string[]): ParsedCommand {
   const [name, ...rest] = tokens;
   if (!name) throw new UsageError("No command given.");
@@ -202,7 +202,7 @@ export const booleanFlag = (command: ParsedCommand, flag: string): boolean =>
   command.flags.get(flag) === true;
 
 /**
- * Splits one `serve`/`batch` line into tokens, the way AXe's serve does:
+ * Splits one `serve`/`batch` line into tokens:
  * whitespace separates, double quotes group, and a backslash escapes the
  * next character inside quotes.
  */

@@ -43,7 +43,7 @@ import kotlin.math.min
  * `{"ready":true,...}`. All coordinates on the wire are in dp.
  *
  * The server keeps to primitives (dump, touch, key, text, screenshot). Element
- * resolution, waiting and the AXe-compatible output live in the host CLI,
+ * resolution, waiting and output formatting live in the host CLI,
  * where they can be tested without a device.
  */
 class ServerInstrumentation : Instrumentation() {

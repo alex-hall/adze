@@ -21,7 +21,7 @@ import type { DeviceInfo } from "./session.js";
 import {
   describeWindows,
   type AndroidWindow,
-  type AxeElement,
+  type UiElement,
 } from "./tree.js";
 
 /** What a command needs from a device; `Session` in practice, a fake in tests. */
@@ -169,7 +169,7 @@ async function waitForElement(
   device: Device,
   selector: Selector,
   wait: { timeoutSeconds: number; intervalSeconds: number },
-): Promise<AxeElement> {
+): Promise<UiElement> {
   const deadline = Date.now() + wait.timeoutSeconds * 1000;
   for (;;) {
     try {
@@ -341,7 +341,7 @@ async function pressKey(
 }
 
 /**
- * AXe's preset gestures. Directions name where the finger moves: scroll-up
+ * Preset gestures. Directions name where the finger moves: scroll-up
  * drags upward, bringing content further down the page into view. Edge
  * swipes start a few dp inside the edge, where Android's system gestures
  * (back, notifications) take them.

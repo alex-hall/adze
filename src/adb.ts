@@ -98,8 +98,7 @@ export async function listDevices(binary = adbBinary()): Promise<AdbDevice[]> {
 
 /**
  * The device to use: the one named, else `$ANDROID_SERIAL`, else the only
- * device connected. AXe always needs `--udid`; adze lets a lone emulator go
- * unnamed, as adb does.
+ * device connected: a lone emulator can go unnamed, as with adb.
  */
 export async function resolveSerial(
   named: string | undefined,

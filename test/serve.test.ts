@@ -33,7 +33,7 @@ const runnerFor = (device: ClosableDevice) =>
   new LineRunner(async () => device, {});
 
 describe("serve", () => {
-  it("speaks AXe's protocol: a ready line, then one JSON line per command", async () => {
+  it("speaks the serve protocol: a ready line, then one JSON line per command", async () => {
     const input = new PassThrough();
     const lines: string[] = [];
     const done = serve(
@@ -86,7 +86,7 @@ describe("LineRunner", () => {
     expect(response).toEqual({ ok: true });
   });
 
-  it("gives up with AXe's no-match wording once the wait runs out", async () => {
+  it("gives up with the no-match wording once the wait runs out", async () => {
     const device = new FakeDevice([[window(node())]]);
     const response = await runnerFor(device).run(
       'tap --label "Sign in" --wait-timeout 0.05 --poll-interval 0.01',

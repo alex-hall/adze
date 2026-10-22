@@ -14,11 +14,11 @@ import { LineRunner, serve } from "./serve.js";
 import { Session, VERSION } from "./session.js";
 import { execFile } from "node:child_process";
 
-const USAGE = `adze ${VERSION} — drive Android emulators through accessibility, AXe style.
+const USAGE = `adze ${VERSION} — drive Android emulators through accessibility.
 
 USAGE: adze <subcommand> [--serial <serial>] [options]
 
-  describe-ui     The accessibility tree of the screen, as AXe's describe-ui JSON.
+  describe-ui     The accessibility tree of the screen, as JSON.
   tap             Tap a point (-x/-y) or an element (--id, --label, --value).
   type            Type text into the focused text field.
   swipe           Swipe between two points.

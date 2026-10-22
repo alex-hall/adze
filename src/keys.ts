@@ -1,6 +1,6 @@
 /**
- * Keys. AXe's `key` and `key-combo` take USB HID usage codes, so adze does
- * too, translating each to its Android keycode. Names (`ENTER`,
+ * Keys. `key` and `key-combo` take USB HID usage codes, translated to
+ * Android keycodes, so the same key numbers work across platforms. Names (`ENTER`,
  * `KEYCODE_BACK`) are Android keycode names, for keys HID has no code for.
  *
  * The Command modifier maps to Ctrl: the shortcuts a macOS-minded caller
@@ -122,7 +122,7 @@ const META_FOR_KEYCODE = new Map<number, number>([
 ]);
 
 /**
- * A key argument: a number is a HID usage code (as in AXe), a name is an
+ * A key argument: a number is a HID usage code, a name is an
  * Android keycode name with or without its `KEYCODE_` prefix.
  */
 export function androidKeycode(key: string): number {
@@ -156,7 +156,7 @@ export function metaStateFor(modifiers: readonly string[]): number {
   return meta;
 }
 
-/** AXe's hardware buttons, plus Android's own. */
+/** Hardware buttons: the iOS simulator's names where they mean the same, plus Android's own. */
 const BUTTONS: Record<string, number> = {
   home: ANDROID_KEYCODES.HOME!,
   lock: ANDROID_KEYCODES.POWER!,

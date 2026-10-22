@@ -22,7 +22,7 @@ export { describeNode, describeWindows, flatten } from "./tree.js";
 export type {
   AndroidNode,
   AndroidWindow,
-  AxeElement,
+  UiElement,
   Frame,
   ScreenSize,
 } from "./tree.js";

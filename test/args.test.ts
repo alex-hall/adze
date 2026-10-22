@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseCommand, tokenizeLine, UsageError } from "../src/args.js";
 
 describe("parseCommand", () => {
-  it("parses an AXe-style tap", () => {
+  it("parses a tap with its flags", () => {
     const command = parseCommand([
       "tap",
       "--label",

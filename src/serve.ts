@@ -116,7 +116,7 @@ export class LineRunner {
 }
 
 /**
- * AXe's serve protocol over stdin/stdout: `{"ready":true}` once the device
+ * The serve protocol over stdin/stdout: `{"ready":true}` once the device
  * server is reachable, then one `{"ok":...}` line per command line, in
  * order. Ends when stdin closes.
  */

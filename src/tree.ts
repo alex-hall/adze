@@ -1,7 +1,8 @@
 /**
- * Turns the device server's raw window dump into AXe's `describe-ui` shape,
- * so anything that parses AXe output (AXhandle's tree normalizer above all)
- * reads Android trees unchanged.
+ * Turns the device server's raw window dump into `describe-ui`'s output:
+ * accessibility elements with `AXLabel`, `AXUniqueId`, `AXValue` and `frame`,
+ * the keys iOS accessibility tooling uses, so harnesses written for iOS read
+ * Android trees unchanged.
  */
 
 export interface Frame {
@@ -62,8 +63,8 @@ export interface ScreenSize {
   heightDp: number;
 }
 
-/** An element in AXe's `describe-ui` shape, plus Android detail. */
-export interface AxeElement {
+/** One element of `describe-ui`'s output, plus Android detail. */
+export interface UiElement {
   AXLabel: string | null;
   AXUniqueId: string | null;
   AXValue: string | null;
@@ -76,14 +77,14 @@ export interface AxeElement {
   title: string | null;
   help: string | null;
   enabled: boolean;
-  /** Not in AXe: false for nodes Android reports off screen, such as scrolled-away rows. */
+  /** False for elements a tap can't reach: scrolled off screen, or under another window. */
   visible: boolean;
   traits: string[];
   custom_actions: string[];
   content_required: boolean;
   pid: null;
-  children: AxeElement[];
-  /** Not in AXe: what Android itself reported for this node. */
+  children: UiElement[];
+  /** What Android itself reported for this node. */
   android: {
     class: string | null;
     package: string | null;
@@ -116,7 +117,7 @@ export function describeWindows(
   windows: readonly AndroidWindow[],
   screen: ScreenSize,
   options: DescribeOptions = {},
-): AxeElement[] {
+): UiElement[] {
   const backToFront = [...windows].sort(
     (left, right) => left.layer - right.layer,
   );
@@ -155,12 +156,12 @@ function coveringFrames(
  * what iOS reports for an element under a sheet.
  */
 function markCovered(
-  element: AxeElement,
+  element: UiElement,
   covering: readonly Frame[],
   screen: ScreenSize,
 ) {
   if (covering.length === 0) return;
-  const visit = (current: AxeElement) => {
+  const visit = (current: UiElement) => {
     if (current.visible) {
       const point = onScreenCenter(current.frame, screen);
       if (
@@ -196,12 +197,12 @@ export const contains = (frame: Frame, x: number, y: number): boolean =>
 
 const round = (value: number): number => Math.round(value * 100) / 100;
 
-function describeWindow(window: AndroidWindow): AxeElement {
+function describeWindow(window: AndroidWindow): UiElement {
   const root = describeNode(window.root);
   root.android.windowType = window.type;
   if (window.title) root.android.windowTitle = window.title;
   if (window.type === "application") {
-    // AXe's top-level element is the application, labelled with its name.
+    // An app's top-level element is the application, labelled with its name.
     return {
       ...root,
       type: "Application",
@@ -278,10 +279,10 @@ const repeats = (description: string, text: string): boolean =>
   description === text ||
   description.split(/,\s*/).some((part) => part === text);
 
-export function describeNode(raw: AndroidNode): AxeElement {
+export function describeNode(raw: AndroidNode): UiElement {
   const node = withoutEchoes(raw);
   const role = roleFor(node);
-  const element: AxeElement = {
+  const element: UiElement = {
     AXLabel: labelFor(node),
     AXUniqueId: node.resourceId ?? null,
     AXValue: valueFor(node),
@@ -333,7 +334,7 @@ function labelFor(node: AndroidNode): string | null {
 }
 
 /**
- * A toggle's value is "1" or "0", as AXe reports switches. A text field's
+ * A toggle's value is "1" or "0", as iOS accessibility reports switches. A text field's
  * value is its text, but null while it only shows its hint.
  */
 function valueFor(node: AndroidNode): string | null {
@@ -374,7 +375,7 @@ const LINK = role("Link", "link");
 const HEADING = role("Heading", "heading");
 const GROUP = role("Group", "group");
 
-/** Android widget class → AXe role. Checked by simple class name. */
+/** Android widget class → element role. Checked by simple class name. */
 const CLASS_ROLES: Record<string, Role> = {
   Button: BUTTON,
   ImageButton: BUTTON,
@@ -430,9 +431,9 @@ const nonEmpty = (value: string | undefined): boolean =>
   value !== undefined && value.length > 0;
 
 /** Every element of a forest, depth first, parents before children. */
-export function flatten(elements: readonly AxeElement[]): AxeElement[] {
-  const out: AxeElement[] = [];
-  const visit = (element: AxeElement) => {
+export function flatten(elements: readonly UiElement[]): UiElement[] {
+  const out: UiElement[] = [];
+  const visit = (element: UiElement) => {
     out.push(element);
     element.children.forEach(visit);
   };

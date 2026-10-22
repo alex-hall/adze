@@ -8,7 +8,7 @@ const META_CTRL_ON = 0x1000;
 const META_SHIFT_ON = 0x1;
 
 describe("androidKeycode", () => {
-  it("reads a number as a HID usage code, as AXe does", () => {
+  it("reads a number as a HID usage code", () => {
     expect(androidKeycode("4")).toBe(KEYCODE_A);
     expect(androidKeycode("40")).toBe(KEYCODE_ENTER);
   });
@@ -45,7 +45,7 @@ describe("metaStateFor", () => {
 });
 
 describe("buttonKeycode", () => {
-  it("maps AXe's lock button to power", () => {
+  it("maps the lock button to power", () => {
     expect(buttonKeycode("lock")).toBe(26);
   });
 

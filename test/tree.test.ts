@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { describeWindows, flatten, type AxeElement } from "../src/tree.js";
+import { describeWindows, flatten, type UiElement } from "../src/tree.js";
 import { node, SCREEN, signInScreen, window } from "./fixtures.js";
 
 const describeSignIn = () => describeWindows(signInScreen(), SCREEN);
-const byId = (elements: AxeElement[], id: string) =>
+const byId = (elements: UiElement[], id: string) =>
   flatten(elements).find((element) => element.AXUniqueId === id)!;
 
 describe("describeWindows", () => {
@@ -43,7 +43,7 @@ describe("describeWindows", () => {
     expect(titles).toEqual(["App", "Dialog"]);
   });
 
-  it("reports an app window as AXe's application element, labelled with the app's name", () => {
+  it("reports an app window as an application element, labelled with the app's name", () => {
     const [app] = describeSignIn();
     expect(app).toMatchObject({
       type: "Application",
@@ -111,14 +111,14 @@ describe("describeNode", () => {
     );
   });
 
-  it('reports a switch\'s state as AXe does, "1" or "0"', () => {
+  it('reports a switch\'s state as "1" or "0"', () => {
     const toggle = flatten(describeSignIn()).find(
       (element) => element.type === "Switch",
     )!;
     expect(toggle.AXValue).toBe("1");
   });
 
-  it("maps widget classes to AXe roles", () => {
+  it("maps widget classes to element roles", () => {
     expect(byId(describeSignIn(), "sign-in")).toMatchObject({
       type: "Button",
       role: "AXButton",
@@ -174,7 +174,7 @@ describe("describeNode", () => {
     expect(children).toEqual(["unread-count", "Button"]);
   });
 
-  it("writes AXFrame in AXe's string form", () => {
+  it("writes AXFrame in its string form", () => {
     expect(byId(describeSignIn(), "sign-in").AXFrame).toBe(
       "{{20, 700}, {360, 56}}",
     );
