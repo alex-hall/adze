@@ -1,0 +1,53 @@
+{
+  "name": "adze-android",
+  "version": "0.1.0",
+  "description": "An AXe-compatible command-line driver for Android emulators: read the accessibility tree, tap, type and swipe through UiAutomation.",
+  "keywords": [
+    "android",
+    "android-emulator",
+    "accessibility",
+    "automation",
+    "e2e",
+    "testing",
+    "uiautomation"
+  ],
+  "author": "Alex Hall <me@jalexhall.com>",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "adze": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "apk"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
+    "build:server": "cd server && ./gradlew --no-daemon -q assembleDebug && mkdir -p ../apk && cp build/outputs/apk/debug/adze-server-debug.apk ../apk/adze-server.apk && cp build/outputs/adze-server.version ../apk/adze-server.version",
+    "test": "vitest run",
+    "test:e2e": "ADZE_E2E=1 vitest run test/e2e",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alex-hall/adze.git"
+  },
+  "homepage": "https://github.com/alex-hall/adze#readme",
+  "bugs": {
+    "url": "https://github.com/alex-hall/adze/issues"
+  }
+}

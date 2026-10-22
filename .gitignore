@@ -1,0 +1,7 @@
+node_modules/
+dist/
+apk/
+server/build/
+server/.gradle/
+server/local.properties
+*.png

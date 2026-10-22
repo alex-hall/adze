@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Needed for any socket, even the loopback one the server listens on. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application android:label="adze server" android:hasCode="true" />
+
+    <!-- Self-targeting instrumentation: UiAutomation reads and drives every
+         app on screen, so the app under test needs no changes and no shared
+         signing key. -->
+    <instrumentation
+        android:name=".ServerInstrumentation"
+        android:targetPackage="dev.adze.server" />
+</manifest>
