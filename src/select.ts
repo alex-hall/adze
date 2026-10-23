@@ -89,7 +89,7 @@ function matchesSelector(element: UiElement, selector: Selector): boolean {
     case "id":
       return element.AXUniqueId === selector.text;
     case "label":
-      return element.AXLabel === selector.text;
+      return labelMatches(element.AXLabel, selector.text);
     case "value":
       return element.AXValue === selector.text;
   }
@@ -130,4 +130,17 @@ export function elementAt(
   };
   elements.forEach(visit);
   return found;
+}
+
+/**
+ * Exact, except for Android's all-caps buttons: dialog and Material buttons
+ * draw their label in capitals, and accessibility reports what is drawn, so
+ * an app's "Confirm" arrives as "CONFIRM". An all-caps label therefore also
+ * answers to its ordinary spelling. Any other label must match exactly.
+ */
+export function labelMatches(label: string | null, wanted: string): boolean {
+  if (label === null) return false;
+  if (label === wanted) return true;
+  const allCaps = /\p{Lu}/u.test(label) && label === label.toLocaleUpperCase();
+  return allCaps && label === wanted.toLocaleUpperCase();
 }

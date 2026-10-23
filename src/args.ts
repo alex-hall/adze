@@ -29,7 +29,7 @@ const DELAY_FLAGS = ["--pre-delay", "--post-delay"];
 export const COMMANDS: Record<string, CommandSpec> = {
   "describe-ui": {
     values: ["--point"],
-    booleans: ["--all-windows"],
+    booleans: ["--all-windows", "--offscreen"],
     positionals: 0,
   },
   tap: {

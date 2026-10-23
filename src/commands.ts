@@ -90,6 +90,7 @@ async function describeUi(
 ): Promise<CommandResult> {
   const tree = describeWindows(await device.windows(), device.info, {
     allWindows: booleanFlag(command, "--all-windows"),
+    offscreen: booleanFlag(command, "--offscreen"),
   });
   const point = stringFlag(command, "--point");
   if (point === undefined)

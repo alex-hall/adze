@@ -104,6 +104,13 @@ export interface UiElement {
 export interface DescribeOptions {
   /** Include every window, status and navigation bars too. Default false. */
   allWindows?: boolean;
+  /**
+   * Include elements Android reports as off screen, such as rows scrolled
+   * out of a list, marked `visible: false`. Default false: like iOS, the
+   * tree holds what is on screen, so "is it present?" means "can it be
+   * seen?", and scrolling is how an off-screen element turns up.
+   */
+  offscreen?: boolean;
 }
 
 /**
@@ -124,7 +131,11 @@ export function describeWindows(
   return backToFront
     .filter((window) => options.allWindows || !isSystemBar(window, screen))
     .map((window) => {
-      const element = describeWindow(window);
+      const element = describeWindow(
+        options.offscreen
+          ? window
+          : { ...window, root: withoutOffscreen(window.root) },
+      );
       markCovered(element, coveringFrames(window, backToFront), screen);
       return element;
     });
@@ -278,6 +289,17 @@ function withoutEchoes(node: AndroidNode): AndroidNode {
 const repeats = (description: string, text: string): boolean =>
   description === text ||
   description.split(/,\s*/).some((part) => part === text);
+
+/** The node without the descendants Android reports off screen. */
+function withoutOffscreen(node: AndroidNode): AndroidNode {
+  if (!node.children) return node;
+  return {
+    ...node,
+    children: node.children
+      .filter((child) => child.visible)
+      .map(withoutOffscreen),
+  };
+}
 
 export function describeNode(raw: AndroidNode): UiElement {
   const node = withoutEchoes(raw);

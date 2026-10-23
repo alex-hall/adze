@@ -74,10 +74,12 @@ hundred elements takes a few milliseconds.
 - **`watch-changes`** comes from the system's accessibility events, so the
   app under test needs nothing added. Keep a cached tree until the next
   `changed` line.
-- **`type`** inserts at the cursor of the focused field through the
-  accessibility API, so any Unicode arrives intact. A newline presses Return.
-  A password field's current text can't be read back, so typing into one
-  replaces its contents.
+- **`type`** types into the focused field the way a keyboard does: key
+  presses for characters a keyboard has, a paste for anything else (curly
+  quotes, emoji), so the app sees an edit at the cursor and any Unicode
+  arrives intact. A newline presses Return. Because of the pastes, adze turns
+  off Android 13+'s clipboard preview, which would otherwise cover the screen
+  for a few seconds after each one.
 
 ## Development
 

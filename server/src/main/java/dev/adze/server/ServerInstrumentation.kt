@@ -2,6 +2,8 @@ package dev.adze.server
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Instrumentation
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.app.UiAutomation
 import android.graphics.Bitmap
 import android.graphics.Rect
@@ -14,6 +16,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Display
 import android.view.InputDevice
+import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.accessibility.AccessibilityEvent
@@ -330,37 +333,60 @@ class ServerInstrumentation : Instrumentation() {
     }
 
     /**
-     * Inserts text at the cursor of the focused text field, like typing does,
-     * through the accessibility API rather than key events, so any Unicode —
-     * curly quotes, emoji — arrives intact. Text replaces the current
-     * selection, if there is one.
+     * Types into the focused text field the way a keyboard does, so the app
+     * sees an edit at the cursor rather than a whole new value. (Replacing
+     * the value through the accessibility API looks the same on screen, but
+     * a React Native app that is re-rendering at the time drops the change:
+     * its state never learns of it.) Characters a keyboard has are sent as
+     * key presses; anything else — curly quotes, emoji — is pasted, which
+     * edits at the cursor just like typing. Replaces the current selection,
+     * if there is one.
      */
     private fun insertText(text: String) {
         val node = automation.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
             ?: error("No text field has focus. Tap a text field before typing.")
         check(node.isEditable) { "The focused element is not editable." }
-        // A password field's text reads back masked, and an empty field's
-        // reads back as its hint, so neither can be edited in place.
-        val current = if (node.isShowingHintText || node.isPassword) "" else node.text?.toString().orEmpty()
-        var start = min(node.textSelectionStart, node.textSelectionEnd)
-        var end = max(node.textSelectionStart, node.textSelectionEnd)
-        if (start < 0 || end > current.length) {
-            start = current.length
-            end = current.length
+        for (run in keyboardRuns(text)) {
+            val events = keyCharacterMap.getEvents(run.toCharArray())
+            if (events != null) {
+                for (event in events) injectKey(KeyEvent.changeTimeRepeat(event, SystemClock.uptimeMillis(), 0))
+            } else {
+                paste(run)
+            }
         }
-        val next = current.substring(0, start) + text + current.substring(end)
-        val setText = Bundle().apply {
-            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, next)
-        }
-        check(node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, setText)) { "The text field rejected the text." }
-        val cursor = start + text.length
-        val select = Bundle().apply {
-            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, cursor)
-            putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, cursor)
-        }
-        node.refresh()
-        node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, select)
     }
+
+    /** `text` cut into runs that are all keyboard characters, or all not. */
+    private fun keyboardRuns(text: String): List<String> {
+        val runs = mutableListOf<String>()
+        val run = StringBuilder()
+        var typeable: Boolean? = null
+        var index = 0
+        while (index < text.length) {
+            val character = text.codePointAt(index)
+            val chars = Character.toChars(character)
+            val canType = chars.size == 1 && keyCharacterMap.getEvents(chars) != null
+            if (typeable != null && canType != typeable) {
+                runs.add(run.toString())
+                run.clear()
+            }
+            typeable = canType
+            run.append(chars)
+            index += chars.size
+        }
+        if (run.isNotEmpty()) runs.add(run.toString())
+        return runs
+    }
+
+    private fun paste(text: String) {
+        val clipboard = context.getSystemService(ClipboardManager::class.java)
+        clipboard.setPrimaryClip(ClipData.newPlainText("adze", text))
+        val node = automation.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+            ?: error("The text field lost focus while typing.")
+        check(node.performAction(AccessibilityNodeInfo.ACTION_PASTE)) { "The text field refused a paste." }
+    }
+
+    private val keyCharacterMap by lazy { KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD) }
 
     private fun motion(downAt: Long, action: Int, x: Float, y: Float): MotionEvent =
         MotionEvent.obtain(downAt, SystemClock.uptimeMillis(), action, x, y, 0).apply {

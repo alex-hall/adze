@@ -3,6 +3,7 @@ import {
   activationPoint,
   AmbiguousMatchError,
   elementAt,
+  labelMatches,
   NoMatchError,
   OffScreenMatchError,
   selectElement,
@@ -86,10 +87,34 @@ describe("selectElement", () => {
     ).toBe(true);
   });
 
-  it("says when the only match is off screen", () => {
+  it("doesn't find a row scrolled off screen, as on iOS", () => {
     expect(() =>
       selectElement(messages(), { kind: "id", text: "message-1" }),
+    ).toThrow(NoMatchError);
+  });
+
+  it("says a match is off screen when off-screen elements are included", () => {
+    const withOffscreen = describeWindows(messageList(), SCREEN, {
+      offscreen: true,
+    });
+    expect(() =>
+      selectElement(withOffscreen, { kind: "id", text: "message-1" }),
     ).toThrow(OffScreenMatchError);
+  });
+});
+
+describe("labelMatches", () => {
+  it("matches Android's all-caps button by its ordinary spelling", () => {
+    expect(labelMatches("CONFIRM", "Confirm")).toBe(true);
+  });
+
+  it("stays exact for labels that aren't all caps", () => {
+    expect(labelMatches("Confirm", "confirm")).toBe(false);
+    expect(labelMatches("Sign In", "Sign in")).toBe(false);
+  });
+
+  it("doesn't read an all-caps search as matching a mixed-case label", () => {
+    expect(labelMatches("Confirm", "CONFIRM")).toBe(false);
   });
 });
 

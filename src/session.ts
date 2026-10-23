@@ -177,6 +177,12 @@ async function connectToServer(
     }
     log(`Starting adze server on ${adb.serial}.`);
     await adb.shell(`am force-stop ${SERVER_PACKAGE}`);
+    // `type` pastes the characters a keyboard can't type, and since Android 13
+    // every copy raises a full-screen clipboard preview for a few seconds,
+    // which covers the app and swallows taps. Turn the preview off.
+    await adb
+      .shell("device_config put systemui clipboard_overlay_enabled false")
+      .catch(() => undefined);
     // Detached with nohup and every stream redirected: a server owned by this
     // adb session would die the moment adb drops the connection, and an open
     // stdin can keep `adb shell` waiting.
