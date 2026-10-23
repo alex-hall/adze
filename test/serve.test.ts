@@ -24,6 +24,17 @@ class FakeDevice implements ClosableDevice {
     return { ok: true };
   }
 
+  readonly adbCalls: string[][] = [];
+  /** What `adb shell dumpsys <service>` prints, by service. */
+  dumpsys: Record<string, string> = {};
+
+  async adb(args: readonly string[]): Promise<string> {
+    this.adbCalls.push([...args]);
+    if (args[0] === "shell" && args[1] === "dumpsys")
+      return this.dumpsys[args[2]!] ?? "";
+    return "";
+  }
+
   close(): void {
     this.closed = true;
   }
@@ -143,14 +154,23 @@ describe("LineRunner", () => {
       windows: async () => signInScreen(),
       request: async () => {
         if (calls++ === 0) return { ok: true };
-        throw new ConnectionLostError("The connection to the device server closed.", false);
+        throw new ConnectionLostError(
+          "The connection to the device server closed.",
+          false,
+        );
       },
+      adb: async () => "",
       close: () => {},
     };
     const healthy = new FakeDevice([signInScreen()]);
     let connects = 0;
-    const runner = new LineRunner(async () => (connects++ === 0 ? halfway : healthy), {});
-    expect((await runner.run("touch -x 1 -y 2 --down --up --delay 0")).ok).toBe(false);
+    const runner = new LineRunner(
+      async () => (connects++ === 0 ? halfway : healthy),
+      {},
+    );
+    expect((await runner.run("touch -x 1 -y 2 --down --up --delay 0")).ok).toBe(
+      false,
+    );
     expect(healthy.requests).toEqual([]);
   });
 
@@ -178,8 +198,57 @@ function deadDevice(sent: boolean): ClosableDevice {
     info: SCREEN,
     windows: async () => signInScreen(),
     request: async () => {
-      throw new ConnectionLostError("The connection to the device server closed.", sent);
+      throw new ConnectionLostError(
+        "The connection to the device server closed.",
+        sent,
+      );
     },
+    adb: async () => "",
     close: () => {},
   };
 }
+
+describe("biometric", () => {
+  it("touches the sensor with the enrolled finger for a match, another for no match", async () => {
+    const device = new FakeDevice([signInScreen()]);
+    const runner = runnerFor(device);
+    await runner.run("biometric match");
+    await runner.run("biometric nomatch");
+    expect(device.adbCalls).toEqual([
+      ["emu", "finger", "touch", "1"],
+      ["emu", "finger", "touch", "2"],
+    ]);
+  });
+
+  it("reports whether a biometric prompt holds focus", async () => {
+    const device = new FakeDevice([signInScreen()]);
+    device.dumpsys.window =
+      "  mCurrentFocus=Window{242de1f u0 BiometricPrompt}\n  mFocusedApp=ActivityRecord{f17faae}";
+    expect(await runnerFor(device).run("biometric prompt")).toEqual({
+      ok: true,
+      showing: true,
+    });
+
+    device.dumpsys.window =
+      "  mCurrentFocus=Window{a235d29 u0 com.example.app/com.example.app.MainActivity}";
+    expect(await runnerFor(device).run("biometric prompt")).toEqual({
+      ok: true,
+      showing: false,
+    });
+  });
+
+  it("does nothing to a device that already has a fingerprint", async () => {
+    const device = new FakeDevice([signInScreen()]);
+    device.dumpsys.fingerprint = '{"prints":[{"id":0,"count":1}]}';
+    const response = await runnerFor(device).run("biometric enroll");
+    expect(response).toEqual({ ok: true, enrolled: true, already: true });
+    expect(device.adbCalls).toEqual([["shell", "dumpsys", "fingerprint"]]);
+  });
+
+  it("refuses an unknown action", async () => {
+    const response = await runnerFor(new FakeDevice([signInScreen()])).run(
+      "biometric wave",
+    );
+    expect(response.ok).toBe(false);
+  });
+});

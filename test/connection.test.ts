@@ -139,3 +139,38 @@ describe("ServerConnection", () => {
     );
   });
 });
+
+describe("ServerConnection.watch", () => {
+  it("delivers each change event after the server accepts the watch", async () => {
+    let client: Socket | undefined;
+    const port = await start((socket) => {
+      client = socket;
+      socket.setEncoding("utf8");
+      socket.write('{"ready":true}\n');
+      socket.once("data", () => socket.write('{"ok":true}\n'));
+    });
+    const connection = await ServerConnection.connect(port);
+    let changes = 0;
+    const watching = connection.watch(() => changes++);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    client!.write('{"event":"changed"}\n{"event":"changed"}\n');
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(changes).toBe(2);
+    connection.close();
+    await expect(watching).resolves.toBeUndefined();
+  });
+
+  it("rejects when the server goes away, so the watcher can be restarted", async () => {
+    let client: Socket | undefined;
+    const port = await start((socket) => {
+      client = socket;
+      socket.write('{"ready":true}\n');
+      socket.once("data", () => socket.write('{"ok":true}\n'));
+    });
+    const connection = await ServerConnection.connect(port);
+    const watching = connection.watch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    client!.destroy();
+    await expect(watching).rejects.toBeInstanceOf(ConnectionLostError);
+  });
+});

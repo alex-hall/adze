@@ -18,6 +18,7 @@ const NOT_IN_SERVE = new Set([
   "batch",
   "list-devices",
   "list-simulators",
+  "watch-changes",
 ]);
 
 /**
@@ -80,6 +81,7 @@ export class LineRunner {
           return device.info;
         },
         windows: () => device.windows(),
+        adb: (args, timeoutMs) => device.adb(args, timeoutMs),
         // Counts requests that reached the server. Reads (`windows`) don't
         // need counting: repeating one changes nothing.
         request: async (request, timeoutMs) => {

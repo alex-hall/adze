@@ -16,16 +16,22 @@ import android.view.Display
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.io.InputStreamReader
+import java.io.OutputStream
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.math.ceil
 import kotlin.math.hypot
@@ -66,6 +72,9 @@ class ServerInstrumentation : Instrumentation() {
         automation = getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
         configureAutomation()
         density = context.resources.displayMetrics.density
+        automation.setOnAccessibilityEventListener { event ->
+            if (event.eventType and SCREEN_CHANGE_EVENTS != 0) changes.changed()
+        }
         ServerSocket(port, 8, InetAddress.getLoopbackAddress()).use { server ->
             Log.i(TAG, "adze server ${BuildConfig.VERSION_NAME} listening on $port")
             while (true) {
@@ -98,6 +107,18 @@ class ServerInstrumentation : Instrumentation() {
         send(JSONObject().put("ready", true).put("version", BuildConfig.VERSION_NAME))
         while (true) {
             val line = reader.readLine() ?: return
+            if (isWatchRequest(line)) {
+                // From here on this connection only receives change events,
+                // until the client hangs up.
+                send(ok())
+                changes.watch(out)
+                try {
+                    while (reader.readLine() != null) Unit
+                } finally {
+                    changes.unwatch(out)
+                }
+                return
+            }
             val response = try {
                 val request = JSONObject(line)
                 synchronized(lock) { handle(request) }
@@ -392,9 +413,85 @@ class ServerInstrumentation : Instrumentation() {
         else -> "unknown"
     }
 
+    private val changes = ChangeBroadcaster()
+
+    private fun isWatchRequest(line: String) =
+        runCatching { JSONObject(line).optString("cmd") == "watch" }.getOrDefault(false)
+
     private companion object {
         const val TAG = "adze"
         const val DEFAULT_PORT = 7912
         const val ROLE_DESCRIPTION_EXTRA = "AccessibilityNodeInfo.roleDescription"
+
+        /** Events that mean what's on screen may now read differently. */
+        const val SCREEN_CHANGE_EVENTS =
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
+                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+                AccessibilityEvent.TYPE_WINDOWS_CHANGED or
+                AccessibilityEvent.TYPE_VIEW_SCROLLED or
+                AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or
+                AccessibilityEvent.TYPE_VIEW_SELECTED
+    }
+}
+
+/**
+ * Tells every watching connection that the screen changed, at most once per
+ * [WINDOW_MS]: the first change in a quiet spell goes out at once, and any
+ * that follow within the window are folded into one trailing event, so a
+ * watcher never misses the last change of a burst. A list scrolling or an
+ * animation can raise hundreds of accessibility events a second; a watcher
+ * only needs to know that what it read may be stale.
+ */
+private class ChangeBroadcaster {
+    private val watchers = CopyOnWriteArrayList<OutputStream>()
+    private val scheduler = Executors.newSingleThreadScheduledExecutor()
+    private val lock = Any()
+    private var lastSentAt = 0L
+    private var trailingScheduled = false
+
+    fun watch(out: OutputStream) {
+        watchers.add(out)
+    }
+
+    fun unwatch(out: OutputStream) {
+        watchers.remove(out)
+    }
+
+    fun changed() {
+        if (watchers.isEmpty()) return
+        synchronized(lock) {
+            val sinceLast = SystemClock.uptimeMillis() - lastSentAt
+            if (sinceLast >= WINDOW_MS && !trailingScheduled) {
+                lastSentAt = SystemClock.uptimeMillis()
+                scheduler.execute(::broadcast)
+            } else if (!trailingScheduled) {
+                trailingScheduled = true
+                scheduler.schedule({
+                    synchronized(lock) {
+                        trailingScheduled = false
+                        lastSentAt = SystemClock.uptimeMillis()
+                    }
+                    broadcast()
+                }, max(0L, WINDOW_MS - sinceLast), TimeUnit.MILLISECONDS)
+            }
+        }
+    }
+
+    private fun broadcast() {
+        val line = "{\"event\":\"changed\"}\n".toByteArray(Charsets.UTF_8)
+        for (out in watchers) {
+            try {
+                synchronized(out) {
+                    out.write(line)
+                    out.flush()
+                }
+            } catch (error: IOException) {
+                watchers.remove(out)
+            }
+        }
+    }
+
+    private companion object {
+        const val WINDOW_MS = 50L
     }
 }

@@ -2,6 +2,12 @@ export { Adb, AdbError, adbBinary, listDevices, resolveSerial } from "./adb.js";
 export type { AdbDevice } from "./adb.js";
 export { parseCommand, tokenizeLine, UsageError } from "./args.js";
 export type { ParsedCommand } from "./args.js";
+export {
+  biometricPromptShowing,
+  fingerprintEnrolled,
+  nextEnrollStep,
+} from "./biometric.js";
+export type { EnrollStep } from "./biometric.js";
 export { runCommand } from "./commands.js";
 export type { CommandDefaults, CommandResult, Device } from "./commands.js";
 export { ServerConnection, ServerError } from "./connection.js";

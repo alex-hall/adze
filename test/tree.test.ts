@@ -183,13 +183,19 @@ describe("describeNode", () => {
 
 describe("windows over windows", () => {
   const keyboard = (top: number) =>
-    window(node({ package: "com.example.keyboard", frame: { x: 0, y: top, width: 400, height: 800 - top } }), {
-      id: 7,
-      type: "input-method",
-      layer: 5,
-      frame: { x: 0, y: top, width: 400, height: 800 - top },
-      title: "Keyboard",
-    });
+    window(
+      node({
+        package: "com.example.keyboard",
+        frame: { x: 0, y: top, width: 400, height: 800 - top },
+      }),
+      {
+        id: 7,
+        type: "input-method",
+        layer: 5,
+        frame: { x: 0, y: top, width: 400, height: 800 - top },
+        title: "Keyboard",
+      },
+    );
 
   it("reports an element under the keyboard as not visible", () => {
     const [app] = describeWindows([...signInScreen(), keyboard(500)], SCREEN);
@@ -200,13 +206,28 @@ describe("windows over windows", () => {
   it("reports an element under a status bar it was laid out beneath as not visible", () => {
     const [app] = describeWindows(
       [
-        window(node({ children: [node({ resourceId: "under-bar", frame: { x: 0, y: 0, width: 400, height: 20 } })] })),
-        window(node({ package: "com.android.systemui", frame: { x: 0, y: 0, width: 400, height: 24 } }), {
-          id: 2,
-          type: "system",
-          layer: 3,
-          frame: { x: 0, y: 0, width: 400, height: 24 },
-        }),
+        window(
+          node({
+            children: [
+              node({
+                resourceId: "under-bar",
+                frame: { x: 0, y: 0, width: 400, height: 20 },
+              }),
+            ],
+          }),
+        ),
+        window(
+          node({
+            package: "com.android.systemui",
+            frame: { x: 0, y: 0, width: 400, height: 24 },
+          }),
+          {
+            id: 2,
+            type: "system",
+            layer: 3,
+            frame: { x: 0, y: 0, width: 400, height: 24 },
+          },
+        ),
       ],
       SCREEN,
     );
@@ -221,7 +242,9 @@ describe("windows over windows", () => {
       layer: 2,
       frame: { x: 752, y: 0, width: 48, height: 400 },
     });
-    expect(describeWindows([window(node()), sideBar], landscape)).toHaveLength(1);
+    expect(describeWindows([window(node()), sideBar], landscape)).toHaveLength(
+      1,
+    );
   });
 
   it("keeps a thin edge window that isn't System UI's", () => {
@@ -257,7 +280,9 @@ describe("text that repeats a description", () => {
         window(
           node({
             contentDescription: "Inbox, 3 unread",
-            children: [node({ class: "android.widget.TextView", text: "3 unread" })],
+            children: [
+              node({ class: "android.widget.TextView", text: "3 unread" }),
+            ],
           }),
         ),
       ],

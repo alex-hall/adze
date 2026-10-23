@@ -8,6 +8,7 @@ import {
   type ParsedCommand,
 } from "./args.js";
 import type { ServerRequest, ServerResponse } from "./connection.js";
+import { biometric } from "./biometric.js";
 import { androidKeycode, buttonKeycode, metaStateFor } from "./keys.js";
 import {
   activationPoint,
@@ -18,11 +19,7 @@ import {
   type SelectorKind,
 } from "./select.js";
 import type { DeviceInfo } from "./session.js";
-import {
-  describeWindows,
-  type AndroidWindow,
-  type UiElement,
-} from "./tree.js";
+import { describeWindows, type AndroidWindow, type UiElement } from "./tree.js";
 
 /** What a command needs from a device; `Session` in practice, a fake in tests. */
 export interface Device {
@@ -30,6 +27,8 @@ export interface Device {
   readonly info: DeviceInfo;
   request(request: ServerRequest, timeoutMs?: number): Promise<ServerResponse>;
   windows(): Promise<AndroidWindow[]>;
+  /** Runs adb against this device (`emu`, `shell`, …) and returns its stdout. */
+  adb(args: readonly string[], timeoutMs?: number): Promise<string>;
 }
 
 /** Defaults a long-lived `serve` or `batch` sets for every command it runs. */
@@ -76,6 +75,8 @@ export async function runCommand(
       return button(device, command);
     case "gesture":
       return gesture(device, command);
+    case "biometric":
+      return biometric(device, command, defaults);
     case "screenshot":
       return screenshot(device, command);
     default:

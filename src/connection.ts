@@ -115,12 +115,15 @@ export class ServerConnection {
       while ((newline = this.buffer.indexOf("\n")) !== -1) {
         const line = this.buffer.slice(0, newline);
         this.buffer = this.buffer.slice(newline + 1);
-        this.waiting.shift()?.(line);
+        const waiter = this.waiting.shift();
+        if (waiter) waiter(line);
+        else this.onEvent?.(line);
       }
     });
     const onGone = () => {
       this.closed = true;
       for (const waiter of this.waiting.splice(0)) waiter(null);
+      this.onGone?.();
     };
     this.socket.on("close", onGone);
     this.socket.on("error", onGone);
@@ -137,7 +140,8 @@ export class ServerConnection {
     request: ServerRequest,
     timeoutMs: number,
   ): Promise<ServerResponse> {
-    if (this.closed) return Promise.reject(new ConnectionLostError(CLOSED, false));
+    if (this.closed)
+      return Promise.reject(new ConnectionLostError(CLOSED, false));
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         // A missed response would pair every later reply with the wrong
@@ -177,7 +181,31 @@ export class ServerConnection {
     });
   }
 
+  /** Set by `watch`: receives lines no request is waiting for. */
+  private onEvent: ((line: string) => void) | undefined;
+  private onGone: (() => void) | undefined;
+
+  /**
+   * Turns this connection into a stream of screen-change events: calls
+   * `listener` for each one until the connection closes. Resolves when it is
+   * closed from this side (`close()`), rejects when the server goes away.
+   * The connection takes no requests afterwards.
+   */
+  async watch(listener: () => void): Promise<void> {
+    await this.request({ cmd: "watch" });
+    return new Promise((resolve, reject) => {
+      this.onEvent = () => listener();
+      this.onGone = () =>
+        this.closedByUs
+          ? resolve()
+          : reject(new ConnectionLostError(CLOSED, false));
+    });
+  }
+
+  private closedByUs = false;
+
   close(): void {
+    this.closedByUs = true;
     this.closed = true;
     this.socket.destroy();
   }

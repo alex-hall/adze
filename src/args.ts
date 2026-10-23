@@ -87,6 +87,12 @@ export const COMMANDS: Record<string, CommandSpec> = {
     positionals: 1,
   },
   screenshot: { values: ["--output"], booleans: [], positionals: 0 },
+  biometric: {
+    values: ["--pin", "--wait-timeout"],
+    booleans: [],
+    positionals: 1,
+  },
+  "watch-changes": { values: [], booleans: [], positionals: 0 },
   "list-devices": { values: [], booleans: [], positionals: 0 },
   "list-simulators": { values: [], booleans: [], positionals: 0 },
   serve: {

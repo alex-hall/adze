@@ -72,10 +72,12 @@ export interface SessionOptions {
 export class Session {
   private constructor(
     readonly serial: string,
-    readonly adb: Adb,
+    private readonly adb_: Adb,
     private connection: ServerConnection,
     /** Refreshed by every `windows()`: rotation changes the screen size. */
     public info: DeviceInfo,
+    /** The host port forwarded to the device server. */
+    private readonly port: number,
   ) {}
 
   static async open(options: SessionOptions = {}): Promise<Session> {
@@ -83,10 +85,30 @@ export class Session {
     const serial = await resolveSerial(options.serial);
     const adb = new Adb(serial);
     const connection = await connectToServer(adb, log);
+    // The forward connectToServer set up, looked up again (adb reuses it).
+    const port = await adb.forward(DEVICE_PORT);
     const info = (await connection.request({
       cmd: "info",
     })) as unknown as DeviceInfo;
-    return new Session(serial, adb, connection, info);
+    return new Session(serial, adb, connection, info, port);
+  }
+
+  adb(args: readonly string[], timeoutMs?: number): Promise<string> {
+    return this.adb_.run(args, timeoutMs);
+  }
+
+  /**
+   * Calls `listener` each time the screen may have changed, until the
+   * returned promise settles: it resolves when `stop` is called, and rejects
+   * if the device server goes away. Uses a connection of its own, so
+   * requests on this session aren't held up.
+   */
+  async watchChanges(
+    listener: () => void,
+  ): Promise<{ stop: () => void; ended: Promise<void> }> {
+    const watcher = await ServerConnection.connect(this.port);
+    const ended = watcher.watch(listener);
+    return { stop: () => watcher.close(), ended };
   }
 
   request(request: ServerRequest, timeoutMs?: number): Promise<ServerResponse> {

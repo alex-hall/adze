@@ -29,6 +29,8 @@ USAGE: adze <subcommand> [--serial <serial>] [options]
   button          Press a hardware button (home, back, recents, lock, volume-up, volume-down).
   gesture         Perform a preset gesture (scroll-up, swipe-from-left-edge, ...).
   screenshot      Save a PNG of the screen.
+  biometric       Fingerprint on an emulator: match, nomatch, prompt (is one showing?), enroll.
+  watch-changes   Print a line each time the screen may have changed, until stopped.
   list-devices    List connected devices (also: list-simulators).
   batch           Run several commands over one connection.
   serve           Run commands from stdin, one JSON response per line.
@@ -77,6 +79,8 @@ async function main(argv: string[]): Promise<number> {
       );
       return 0;
     }
+    case "watch-changes":
+      return watchChanges(open);
     case "batch":
       return batch(command, new LineRunner(open, defaultsFrom(command)));
     default: {
@@ -99,6 +103,22 @@ function defaultsFrom(command: ParsedCommand): CommandDefaults {
     ...(waitTimeoutSeconds !== undefined && { waitTimeoutSeconds }),
     ...(pollIntervalSeconds !== undefined && { pollIntervalSeconds }),
   };
+}
+
+/**
+ * One `changed` line per screen change, as the device reports them (at most
+ * one per 50 ms, and always the last of a burst). Runs until killed; exits
+ * with an error if the device server goes away, so whoever runs it can
+ * start it again.
+ */
+async function watchChanges(open: () => Promise<Session>): Promise<number> {
+  const session = await open();
+  const { ended } = await session.watchChanges(() => {
+    process.stdout.write("changed\n");
+  });
+  process.stderr.write(`watching ${session.serial} for screen changes\n`);
+  await ended.finally(() => session.close());
+  return 0;
 }
 
 /** Runs `--step`s, then `--file` or stdin lines, in order; stops at the first failure unless told not to. */
