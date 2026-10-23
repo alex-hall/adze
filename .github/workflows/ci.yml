@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # The device server is an Android app: Gradle needs a JDK 17. The
+      # runner image already carries the Android SDK ($ANDROID_HOME).
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:server
+      - run: npm run build
+      - name: Verify publishable tarball
+        run: |
+          npm pack --dry-run 2>&1 | tee pack.txt
+          grep -q "apk/adze-server.apk" pack.txt || { echo "::error::the tarball is missing the device server APK" >&2; exit 1; }
+          grep -q "apk/adze-server.version" pack.txt || { echo "::error::the tarball is missing the server version file" >&2; exit 1; }

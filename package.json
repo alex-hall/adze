@@ -35,7 +35,8 @@
     "build:server": "cd server && ./gradlew --no-daemon -q assembleDebug && mkdir -p ../apk && cp build/outputs/apk/debug/adze-server-debug.apk ../apk/adze-server.apk && cp build/outputs/adze-server.version ../apk/adze-server.version",
     "test": "vitest run",
     "test:e2e": "ADZE_E2E=1 vitest run test/e2e",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build:server && npm run build"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

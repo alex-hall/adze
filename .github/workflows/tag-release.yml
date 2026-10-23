@@ -1,0 +1,34 @@
+name: Tag release
+
+# The release button: tag whatever version package.json says on the chosen
+# ref (normally main), push the tag, and kick off the Release publish. The
+# explicit dispatch in the last step is load-bearing — a tag pushed with
+# GITHUB_TOKEN never auto-triggers other workflows, and publishing must stay
+# in release.yml because npm's trusted publisher is pinned to that filename.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the tag
+  actions: write # dispatch the Release workflow
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag the package.json version and push
+        id: tag
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if git ls-remote --tags origin "refs/tags/$version" | grep -q .; then
+            echo "::error::$version is already tagged — bump package.json first" >&2
+            exit 1
+          fi
+          git tag "$version"
+          git push origin "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Kick off the Release publish on the new tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release.yml --ref "refs/tags/${{ steps.tag.outputs.version }}"

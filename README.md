@@ -91,3 +91,12 @@ npm run build:server   # builds the device app into apk/
 npm run build
 npm test               # no emulator needed
 ```
+
+## Releasing
+
+Releases publish to npm from GitHub Actions through npm trusted publishing:
+no npm token lives in the repository. Bump `version` in `package.json` on
+`main`, then run the **Tag release** workflow. It tags that version and starts
+**Release**, which checks the tag against `package.json`, builds the device
+server APK and the CLI, runs the tests and publishes.
+
