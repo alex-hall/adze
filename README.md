@@ -20,20 +20,22 @@ another name for it.
 
 ## Commands
 
-| Command                            | What it does                                                                                                        |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `describe-ui`                      | The accessibility tree as JSON; `--point x,y` for the element at a point                                            |
-| `tap`                              | Tap a point (`-x`/`-y`) or an element (`--id`, `--label`, `--value`), optionally waiting for it (`--wait-timeout`)  |
-| `type`                             | Type text into the focused field (argument, `--stdin` or `--file`)                                                  |
-| `swipe`                            | Swipe between two points                                                                                            |
-| `touch`                            | Touch down and/or up at a point                                                                                     |
-| `key`, `key-sequence`, `key-combo` | Press keys, in turn or with modifiers                                                                               |
-| `button`                           | Press `home`, `back`, `recents`, `lock`/`power`, `volume-up` or `volume-down`                                       |
-| `gesture`                          | Preset swipes: `scroll-up`, `scroll-down`, `scroll-left`, `scroll-right`, `swipe-from-{left,right,top,bottom}-edge` |
-| `screenshot`                       | Save a PNG of the screen                                                                                            |
-| `list-devices`                     | Connected devices                                                                                                   |
-| `batch`                            | Run several commands over one connection                                                                            |
-| `serve`                            | Read commands from stdin and answer each with one JSON line, after a `{"ready":true}` line                          |
+| Command                            | What it does                                                                                                              |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `describe-ui`                      | The accessibility tree as JSON; `--point x,y` for the element at a point                                                  |
+| `tap`                              | Tap a point (`-x`/`-y`) or an element (`--id`, `--label`, `--value`), optionally waiting for it (`--wait-timeout`)        |
+| `type`                             | Type text into the focused field (argument, `--stdin` or `--file`)                                                        |
+| `swipe`                            | Swipe between two points                                                                                                  |
+| `touch`                            | Touch down and/or up at a point                                                                                           |
+| `key`, `key-sequence`, `key-combo` | Press keys, in turn or with modifiers                                                                                     |
+| `button`                           | Press `home`, `back`, `recents`, `lock`/`power`, `volume-up` or `volume-down`                                             |
+| `gesture`                          | Preset swipes: `scroll-up`, `scroll-down`, `scroll-left`, `scroll-right`, `swipe-from-{left,right,top,bottom}-edge`       |
+| `screenshot`                       | Save a PNG of the screen                                                                                                  |
+| `biometric`                        | Emulator fingerprint: `match`, `nomatch`, `prompt` (is a biometric prompt showing?), `enroll [--pin 1111]`                |
+| `watch-changes`                    | Print `changed` each time the screen may have changed (at most once per 50 ms, always the last of a burst), until stopped |
+| `list-devices`                     | Connected devices                                                                                                         |
+| `batch`                            | Run several commands over one connection                                                                                  |
+| `serve`                            | Read commands from stdin and answer each with one JSON line, after a `{"ready":true}` line                                |
 
 ## How it works
 
@@ -64,6 +66,14 @@ hundred elements takes a few milliseconds.
 - **Selecting:** `--id`, `--label` and `--value` match exactly. Two visible
   matches is an error rather than a guess; narrow it with `--element-type` or
   use an ID.
+- **Biometric prompts** are secure system windows: they appear in no
+  accessibility tree and show black in screenshots. `adze biometric prompt`
+  asks the window manager instead. `enroll` sets a screen-lock PIN first,
+  because Android won't enroll a fingerprint without one, then walks the
+  Settings screens (an English system image is assumed).
+- **`watch-changes`** comes from the system's accessibility events, so the
+  app under test needs nothing added. Keep a cached tree until the next
+  `changed` line.
 - **`type`** inserts at the cursor of the focused field through the
   accessibility API, so any Unicode arrives intact. A newline presses Return.
   A password field's current text can't be read back, so typing into one
